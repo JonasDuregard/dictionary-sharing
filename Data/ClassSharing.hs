@@ -22,7 +22,7 @@ newtype Shareable f a = Shareable {run :: (Ref -> f a)}
 runShared :: Shared f a -> Ref -> f a
 runShared (Shared x) = run x
 
--- | Share/memoize a class member of type f a. 
+-- | Share/memoize a class member of type @f a@. 
 share :: (Typeable a, Typeable f) => Shareable f a -> Shared f a
 share x = Shared (Shareable $ \r -> memo (run x r) r) where
   memo x r = unsafePerformIO (protect x r)
@@ -43,7 +43,6 @@ instance Alternative f => Alternative (Shareable f) where
   empty = Shareable (const empty)
   Shareable a <|> Shareable b  = Shareable (\r -> a r <|> b r)
 
--- | User needs to make sure that the call is not inlined or otherwise duplicated. 
 unsafeNewRef :: () -> Ref
 {-# INLINE unsafeNewRef #-}
 unsafeNewRef () = unsafePerformIO 
@@ -57,8 +56,10 @@ protect :: Typeable a => a -> Ref -> IO a
 protect x ref = do
   m <- readIORef ref
   case dynLookup m of
-    Just y   ->  return y
-    Nothing  ->  -- putStrLn ("accessing: " ++ (show $ typeOf x)) >> 
+    Just y   ->  -- putStrLn ("Accessing: " ++ (show $ typeOf x)) >> 
+                 return y
+    Nothing  ->  
+                 -- putStrLn ("Initializing: " ++ (show $ typeOf x)) >> 
                  writeIORef ref (dynInsert x m) >> return x
 
 -- |  A dynamic map with type safe
